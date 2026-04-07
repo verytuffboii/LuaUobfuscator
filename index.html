@@ -1,96 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soteria Hub</title>
+    <meta charset="UTF-8"><title>Soteria Hub</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --accent: #58a6ff; --text: #c9d1d9; --success: #238636; --error: #f85149; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .wrapper { width: 90%; max-width: 800px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; }
-        h1 { font-size: 20px; color: var(--accent); margin: 0 0 15px 0; display: flex; justify-content: space-between; }
-        textarea { width: 100%; height: 350px; background: #010409; color: #79c0ff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; outline: none; }
-        .footer { margin-top: 15px; display: flex; gap: 10px; }
-        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        #obfBtn { background: var(--success); color: white; flex: 2; }
-        #copyBtn { background: #30363d; color: white; flex: 1; }
-        #status { margin-top: 15px; font-size: 13px; text-align: center; font-weight: bold; }
-        button:disabled { opacity: 0.5; }
+        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --text: #c9d1d9; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .wrapper { width: 90%; max-width: 800px; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #30363d; }
+        textarea { width: 100%; height: 350px; background: #010409; color: #79c0ff; border: 1px solid #30363d; padding: 12px; font-family: monospace; box-sizing: border-box; }
+        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #238636; color: white; width: 100%; margin-top: 15px; }
+        #status { margin-top: 15px; text-align: center; font-size: 13px; }
     </style>
 </head>
 <body>
-
 <div class="wrapper">
-    <h1>Soteria.rip <span id="tokenCount" style="font-size: 12px; color: #8b949e;">Tokens: --</span></h1>
-    <textarea id="editor" placeholder="-- Paste your code here..."></textarea>
-    <div class="footer">
-        <button id="obfBtn">Obfuscate Code</button>
-        <button id="copyBtn">Copy</button>
-    </div>
+    <h2>Soteria Obfuscator</h2>
+    <textarea id="editor" placeholder="Paste code here..."></textarea>
+    <button id="obfBtn">Obfuscate Code</button>
     <div id="status">Ready</div>
 </div>
 
 <script>
-    const API_KEY = 'e4facd6e-f54c-44e7-8ee3-5f6b99817d0d';
-    // Using a different proxy service that handles headers more strictly
-    const PROXY_URL = 'https://api.allorigins.win/raw?url=';
-    const TARGET_URL = 'https://soteria.rip/api/obfuscate';
-
-    const editor = document.getElementById('editor');
     const obfBtn = document.getElementById('obfBtn');
-    const statusDiv = document.getElementById('status');
-    const tokens = document.getElementById('tokenCount');
+    const editor = document.getElementById('editor');
+    const status = document.getElementById('status');
 
     obfBtn.addEventListener('click', async () => {
         const code = editor.value.trim();
-        if (!code) return;
+        if(!code) return;
 
         obfBtn.disabled = true;
-        statusDiv.innerText = "Processing (Bypassing CORS)...";
-        statusDiv.style.color = "var(--accent)";
+        status.innerText = "Processing via Vercel Backend...";
 
         try {
-            // Using a simple fetch first, but if it fails, we fall back to a more aggressive proxy
-            const response = await fetch(PROXY_URL + encodeURIComponent(TARGET_URL), {
+            const response = await fetch('/api/obfuscate', {
                 method: 'POST',
-                headers: {
-                    'x-api-key': API_KEY,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code: code })
             });
 
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(errText || "Server rejected request");
-            }
-
             const data = await response.json();
-            
             if (data.code) {
                 editor.value = data.code;
-                tokens.innerText = `Tokens: ${data.tokens || '?'}`;
-                statusDiv.innerText = "✓ Obfuscated Successfully";
-                statusDiv.style.color = "var(--success)";
+                status.innerText = "✓ Success! Tokens left: " + data.tokens;
             } else {
-                throw new Error("Invalid response from Soteria");
+                status.innerText = "Error: " + (data.error || "Unknown error");
             }
-
         } catch (err) {
-            console.error(err);
-            statusDiv.innerText = "Error: Soteria API is blocking the connection. You may need a backend.";
-            statusDiv.style.color = "var(--error)";
-        } finally {
-            obfBtn.disabled = false;
-        }
-    });
-
-    document.getElementById('copyBtn').addEventListener('click', () => {
-        editor.select();
-        document.execCommand('copy');
-        statusDiv.innerText = "Copied to clipboard!";
+            status.innerText = "Connection failed. Make sure you are on Vercel!";
+        } finally { obfBtn.disabled = false; }
     });
 </script>
-
 </body>
 </html>
