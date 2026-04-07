@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soteria API Interface</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --text: #c9d1d9;
+            --success: #238636;
+            --error: #f85149;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .wrapper {
+            width: 95%;
+            max-width: 1000px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 22px; color: var(--accent); font-weight: 500; }
+
+        .token-badge {
+            background: #21262d;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid var(--border);
+        }
+
+        textarea {
+            width: 100%;
+            height: 450px;
+            background: #010409;
+            color: #79c0ff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus { border-color: var(--accent); }
+
+        .footer-tools {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            font-size: 14px;
+        }
+
+        #obfBtn { background: var(--success); color: white; flex: 2; }
+        #copyBtn { background: #30363d; color: white; flex: 1; border: 1px solid var(--border); }
+        
+        button:active { transform: scale(0.98); }
+        button:disabled { opacity: 0.5; cursor: wait; }
+
+        #status {
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: center;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="header">
+        <h1>Soteria.rip Obfuscator</h1>
+        <div class="token-badge" id="tokenDisplay">Tokens: N/A</div>
+    </div>
+
+    <textarea id="editor" placeholder="-- Paste your Luau source code here..."></textarea>
+
+    <div class="footer-tools">
+        <button id="obfBtn">Obfuscate Code</button>
+        <button id="copyBtn">Copy Result</button>
+    </div>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    const API_KEY = 'e4facd6e-f54c-44e7-8ee3-5f6b99817d0d';
+    const API_URL = 'https://soteria.rip/api/obfuscate';
+
+    const editor = document.getElementById('editor');
+    const obfBtn = document.getElementById('obfBtn');
+    const statusDiv = document.getElementById('status');
+    const tokenDisplay = document.getElementById('tokenDisplay');
+
+    function setStatus(msg, color = 'var(--text)') {
+        statusDiv.innerText = msg;
+        statusDiv.style.color = color;
+    }
+
+    obfBtn.addEventListener('click', async () => {
+        const sourceCode = editor.value.trim();
+
+        if (!sourceCode) {
+            return setStatus("Error: Script cannot be empty.", "var(--error)");
+        }
+
+        obfBtn.disabled = true;
+        setStatus("Sending request to Soteria API...");
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': API_KEY
+                },
+                body: JSON.stringify({ 
+                    code: sourceCode 
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Soteria returns { "code": "...", "tokens": 123 }
+                editor.value = data.code;
+                tokenDisplay.innerText = `Tokens: ${data.tokens}`;
+                setStatus("Successfully obfuscated!", "var(--success)");
+            } else {
+                setStatus(`API Error: ${data.message || response.statusText}`, "var(--error)");
+            }
+        } catch (error) {
+            setStatus("Connection Error: Check console (likely CORS blocked).", "var(--error)");
+            console.error("Fetch error:", error);
+        } finally {
+            obfBtn.disabled = false;
+        }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        editor.select();
+        document.execCommand('copy');
+        const btn = document.getElementById('copyBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = originalText, 1500);
+    });
+</script>
+
+</body>
+</html>
