@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soteria API Interface</title>
+    <title>Soteria Obfuscator Hub</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -28,7 +28,7 @@
 
         .wrapper {
             width: 95%;
-            max-width: 1000px;
+            max-width: 900px;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -51,11 +51,12 @@
             border-radius: 20px;
             font-size: 12px;
             border: 1px solid var(--border);
+            color: #8b949e;
         }
 
         textarea {
             width: 100%;
-            height: 450px;
+            height: 400px;
             background: #010409;
             color: #79c0ff;
             border: 1px solid var(--border);
@@ -67,7 +68,6 @@
             resize: none;
             box-sizing: border-box;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         textarea:focus { border-color: var(--accent); }
@@ -76,7 +76,6 @@
             margin-top: 20px;
             display: flex;
             gap: 15px;
-            align-items: center;
         }
 
         button {
@@ -85,7 +84,7 @@
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
+            transition: 0.1s;
             font-size: 14px;
         }
 
@@ -100,6 +99,7 @@
             font-size: 13px;
             text-align: center;
             min-height: 20px;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -108,7 +108,7 @@
 <div class="wrapper">
     <div class="header">
         <h1>Soteria.rip Obfuscator</h1>
-        <div class="token-badge" id="tokenDisplay">Tokens: N/A</div>
+        <div class="token-badge" id="tokenDisplay">Tokens: --</div>
     </div>
 
     <textarea id="editor" placeholder="-- Paste your Luau source code here..."></textarea>
@@ -122,8 +122,13 @@
 </div>
 
 <script>
+    // YOUR CONFIGURATION
     const API_KEY = 'e4facd6e-f54c-44e7-8ee3-5f6b99817d0d';
-    const API_URL = 'https://soteria.rip/api/obfuscate';
+    
+    // We use a CORS proxy to bypass GitHub Pages restrictions
+    const PROXY = 'https://corsproxy.io/?';
+    const TARGET_URL = 'https://soteria.rip/api/obfuscate';
+    const FULL_URL = PROXY + encodeURIComponent(TARGET_URL);
 
     const editor = document.getElementById('editor');
     const obfBtn = document.getElementById('obfBtn');
@@ -139,14 +144,14 @@
         const sourceCode = editor.value.trim();
 
         if (!sourceCode) {
-            return setStatus("Error: Script cannot be empty.", "var(--error)");
+            return setStatus("Error: Please enter a script.", "var(--error)");
         }
 
         obfBtn.disabled = true;
-        setStatus("Sending request to Soteria API...");
+        setStatus("Requesting obfuscation via Proxy...");
 
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(FULL_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -160,16 +165,16 @@
             const data = await response.json();
 
             if (response.ok) {
-                // Soteria returns { "code": "...", "tokens": 123 }
+                // Soteria returns: { code: "...", tokens: number }
                 editor.value = data.code;
                 tokenDisplay.innerText = `Tokens: ${data.tokens}`;
-                setStatus("Successfully obfuscated!", "var(--success)");
+                setStatus("✓ Obfuscation Successful!", "var(--success)");
             } else {
-                setStatus(`API Error: ${data.message || response.statusText}`, "var(--error)");
+                setStatus(`API Error: ${data.message || "Invalid Request"}`, "var(--error)");
             }
         } catch (error) {
-            setStatus("Connection Error: Check console (likely CORS blocked).", "var(--error)");
-            console.error("Fetch error:", error);
+            setStatus("Proxy Error: The proxy service might be down or blocked.", "var(--error)");
+            console.error(error);
         } finally {
             obfBtn.disabled = false;
         }
@@ -179,9 +184,8 @@
         editor.select();
         document.execCommand('copy');
         const btn = document.getElementById('copyBtn');
-        const originalText = btn.innerText;
         btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = originalText, 1500);
+        setTimeout(() => btn.innerText = "Copy Result", 1500);
     });
 </script>
 
