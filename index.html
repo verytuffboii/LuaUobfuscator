@@ -5,162 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soteria Obfuscator</title>
     <style>
-        :root {
-            --bg: #0d1117;
-            --card: #161b22;
-            --border: #30363d;
-            --accent: #58a6ff;
-            --text: #c9d1d9;
-            --success: #238636;
-            --error: #f85149;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        .wrapper {
-            width: 95%;
-            max-width: 900px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        h1 { margin: 0; font-size: 22px; color: var(--accent); font-weight: 500; }
-
-        .token-badge {
-            background: #21262d;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            border: 1px solid var(--border);
-        }
-
-        textarea {
-            width: 100%;
-            height: 400px;
-            background: #010409;
-            color: #79c0ff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 15px;
-            font-family: monospace;
-            font-size: 13px;
-            resize: none;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .footer-tools {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            transition: 0.2s;
-        }
-
+        :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --accent: #58a6ff; --text: #c9d1d9; --success: #238636; --error: #f85149; }
+        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .wrapper { width: 90%; max-width: 800px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { font-size: 20px; color: var(--accent); margin: 0 0 15px 0; }
+        textarea { width: 100%; height: 350px; background: #010409; color: #79c0ff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; resize: none; box-sizing: border-box; outline: none; }
+        .footer { margin-top: 15px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         #obfBtn { background: var(--success); color: white; flex: 2; }
         #copyBtn { background: #30363d; color: white; flex: 1; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        #status {
-            margin-top: 15px;
-            font-size: 13px;
-            text-align: center;
-            font-weight: bold;
-        }
+        #status { margin-top: 15px; font-size: 13px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <div class="header">
-        <h1>Soteria.rip Obfuscator</h1>
-        <div class="token-badge" id="tokenDisplay">Tokens: --</div>
+    <h1>Soteria.rip Obfuscator</h1>
+    <textarea id="editor" placeholder="-- Paste Luau code here..."></textarea>
+    <div class="footer">
+        <button id="obfBtn">Obfuscate</button>
+        <button id="copyBtn">Copy</button>
     </div>
-
-    <textarea id="editor" placeholder="-- Paste code here..."></textarea>
-
-    <div class="footer-tools">
-        <button id="obfBtn">Obfuscate Code</button>
-        <button id="copyBtn">Copy Result</button>
-    </div>
-
-    <div id="status"></div>
+    <div id="status">Ready</div>
 </div>
 
 <script>
     const API_KEY = 'e4facd6e-f54c-44e7-8ee3-5f6b99817d0d';
-    
-    // This proxy allows the request to pass through GitHub Pages correctly
+    // This proxy is what stops the red CORS errors in your console
     const PROXY = 'https://corsproxy.io/?';
     const API_URL = 'https://soteria.rip/api/obfuscate';
 
     const editor = document.getElementById('editor');
     const obfBtn = document.getElementById('obfBtn');
-    const statusDiv = document.getElementById('status');
-    const tokenDisplay = document.getElementById('tokenDisplay');
-
-    function setStatus(msg, color) {
-        statusDiv.innerText = msg;
-        statusDiv.style.color = color;
-    }
+    const status = document.getElementById('status');
 
     obfBtn.addEventListener('click', async () => {
-        const source = editor.value.trim();
-        if (!source) return setStatus("Error: Enter some code!", "var(--error)");
+        const code = editor.value.trim();
+        if (!code) return;
 
         obfBtn.disabled = true;
-        setStatus("Obfuscating via Proxy...", "var(--accent)");
+        status.innerText = "Processing via Proxy...";
+        status.style.color = "var(--accent)";
 
         try {
-            // We combine the proxy and the API URL
+            // Using the proxy to bypass the CORS block
             const response = await fetch(PROXY + encodeURIComponent(API_URL), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': API_KEY
                 },
-                body: JSON.stringify({ code: source })
+                body: JSON.stringify({ code: code })
             });
 
             const data = await response.json();
 
             if (response.ok) {
                 editor.value = data.code;
-                tokenDisplay.innerText = `Tokens: ${data.tokens}`;
-                setStatus("Successfully Obfuscated!", "var(--success)");
+                status.innerText = "Success! Remaining Tokens: " + (data.tokens || "N/A");
+                status.style.color = "var(--success)";
             } else {
-                setStatus("API Error: " + (data.message || "Invalid response"), "var(--error)");
+                status.innerText = "API Error: " + (data.message || "Invalid Request");
+                status.style.color = "var(--error)";
             }
         } catch (err) {
-            setStatus("Critical Error: Proxy might be down or key is invalid.", "var(--error)");
-            console.error(err);
+            status.innerText = "Connection failed. The proxy might be busy.";
+            status.style.color = "var(--error)";
         } finally {
             obfBtn.disabled = false;
         }
@@ -169,7 +79,7 @@
     document.getElementById('copyBtn').addEventListener('click', () => {
         editor.select();
         document.execCommand('copy');
-        alert("Copied to clipboard!");
+        alert("Copied!");
     });
 </script>
 
