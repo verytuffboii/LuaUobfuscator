@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soteria Obfuscator Hub</title>
+    <title>Soteria Obfuscator</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -51,7 +51,6 @@
             border-radius: 20px;
             font-size: 12px;
             border: 1px solid var(--border);
-            color: #8b949e;
         }
 
         textarea {
@@ -62,15 +61,12 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 15px;
-            font-family: 'Consolas', 'Monaco', monospace;
+            font-family: monospace;
             font-size: 13px;
-            line-height: 1.5;
             resize: none;
             box-sizing: border-box;
             outline: none;
         }
-
-        textarea:focus { border-color: var(--accent); }
 
         .footer-tools {
             margin-top: 20px;
@@ -84,22 +80,19 @@
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
-            transition: 0.1s;
             font-size: 14px;
+            transition: 0.2s;
         }
 
         #obfBtn { background: var(--success); color: white; flex: 2; }
-        #copyBtn { background: #30363d; color: white; flex: 1; border: 1px solid var(--border); }
-        
-        button:active { transform: scale(0.98); }
-        button:disabled { opacity: 0.5; cursor: wait; }
+        #copyBtn { background: #30363d; color: white; flex: 1; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #status {
             margin-top: 15px;
             font-size: 13px;
             text-align: center;
-            min-height: 20px;
-            font-weight: 500;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -111,7 +104,7 @@
         <div class="token-badge" id="tokenDisplay">Tokens: --</div>
     </div>
 
-    <textarea id="editor" placeholder="-- Paste your Luau source code here..."></textarea>
+    <textarea id="editor" placeholder="-- Paste code here..."></textarea>
 
     <div class="footer-tools">
         <button id="obfBtn">Obfuscate Code</button>
@@ -122,59 +115,52 @@
 </div>
 
 <script>
-    // YOUR CONFIGURATION
     const API_KEY = 'e4facd6e-f54c-44e7-8ee3-5f6b99817d0d';
     
-    // We use a CORS proxy to bypass GitHub Pages restrictions
+    // This proxy allows the request to pass through GitHub Pages correctly
     const PROXY = 'https://corsproxy.io/?';
-    const TARGET_URL = 'https://soteria.rip/api/obfuscate';
-    const FULL_URL = PROXY + encodeURIComponent(TARGET_URL);
+    const API_URL = 'https://soteria.rip/api/obfuscate';
 
     const editor = document.getElementById('editor');
     const obfBtn = document.getElementById('obfBtn');
     const statusDiv = document.getElementById('status');
     const tokenDisplay = document.getElementById('tokenDisplay');
 
-    function setStatus(msg, color = 'var(--text)') {
+    function setStatus(msg, color) {
         statusDiv.innerText = msg;
         statusDiv.style.color = color;
     }
 
     obfBtn.addEventListener('click', async () => {
-        const sourceCode = editor.value.trim();
-
-        if (!sourceCode) {
-            return setStatus("Error: Please enter a script.", "var(--error)");
-        }
+        const source = editor.value.trim();
+        if (!source) return setStatus("Error: Enter some code!", "var(--error)");
 
         obfBtn.disabled = true;
-        setStatus("Requesting obfuscation via Proxy...");
+        setStatus("Obfuscating via Proxy...", "var(--accent)");
 
         try {
-            const response = await fetch(FULL_URL, {
+            // We combine the proxy and the API URL
+            const response = await fetch(PROXY + encodeURIComponent(API_URL), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': API_KEY
                 },
-                body: JSON.stringify({ 
-                    code: sourceCode 
-                })
+                body: JSON.stringify({ code: source })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                // Soteria returns: { code: "...", tokens: number }
                 editor.value = data.code;
                 tokenDisplay.innerText = `Tokens: ${data.tokens}`;
-                setStatus("✓ Obfuscation Successful!", "var(--success)");
+                setStatus("Successfully Obfuscated!", "var(--success)");
             } else {
-                setStatus(`API Error: ${data.message || "Invalid Request"}`, "var(--error)");
+                setStatus("API Error: " + (data.message || "Invalid response"), "var(--error)");
             }
-        } catch (error) {
-            setStatus("Proxy Error: The proxy service might be down or blocked.", "var(--error)");
-            console.error(error);
+        } catch (err) {
+            setStatus("Critical Error: Proxy might be down or key is invalid.", "var(--error)");
+            console.error(err);
         } finally {
             obfBtn.disabled = false;
         }
@@ -183,9 +169,7 @@
     document.getElementById('copyBtn').addEventListener('click', () => {
         editor.select();
         document.execCommand('copy');
-        const btn = document.getElementById('copyBtn');
-        btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = "Copy Result", 1500);
+        alert("Copied to clipboard!");
     });
 </script>
 
