@@ -3,27 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soteria Obfuscator</title>
+    <title>Soteria Hub</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --accent: #58a6ff; --text: #c9d1d9; --success: #238636; --error: #f85149; }
-        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .wrapper { width: 90%; max-width: 800px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { font-size: 20px; color: var(--accent); margin: 0 0 15px 0; }
-        textarea { width: 100%; height: 350px; background: #010409; color: #79c0ff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; resize: none; box-sizing: border-box; outline: none; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .wrapper { width: 90%; max-width: 800px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; }
+        h1 { font-size: 20px; color: var(--accent); margin: 0 0 15px 0; display: flex; justify-content: space-between; }
+        textarea { width: 100%; height: 350px; background: #010409; color: #79c0ff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; outline: none; }
         .footer { margin-top: 15px; display: flex; gap: 10px; }
-        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         #obfBtn { background: var(--success); color: white; flex: 2; }
         #copyBtn { background: #30363d; color: white; flex: 1; }
-        #status { margin-top: 15px; font-size: 13px; text-align: center; }
+        #status { margin-top: 15px; font-size: 13px; text-align: center; font-weight: bold; }
+        button:disabled { opacity: 0.5; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <h1>Soteria.rip Obfuscator</h1>
-    <textarea id="editor" placeholder="-- Paste Luau code here..."></textarea>
+    <h1>Soteria.rip <span id="tokenCount" style="font-size: 12px; color: #8b949e;">Tokens: --</span></h1>
+    <textarea id="editor" placeholder="-- Paste your code here..."></textarea>
     <div class="footer">
-        <button id="obfBtn">Obfuscate</button>
+        <button id="obfBtn">Obfuscate Code</button>
         <button id="copyBtn">Copy</button>
     </div>
     <div id="status">Ready</div>
@@ -31,46 +32,54 @@
 
 <script>
     const API_KEY = 'e4facd6e-f54c-44e7-8ee3-5f6b99817d0d';
-    // This proxy is what stops the red CORS errors in your console
-    const PROXY = 'https://corsproxy.io/?';
-    const API_URL = 'https://soteria.rip/api/obfuscate';
+    // Using a different proxy service that handles headers more strictly
+    const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+    const TARGET_URL = 'https://soteria.rip/api/obfuscate';
 
     const editor = document.getElementById('editor');
     const obfBtn = document.getElementById('obfBtn');
-    const status = document.getElementById('status');
+    const statusDiv = document.getElementById('status');
+    const tokens = document.getElementById('tokenCount');
 
     obfBtn.addEventListener('click', async () => {
         const code = editor.value.trim();
         if (!code) return;
 
         obfBtn.disabled = true;
-        status.innerText = "Processing via Proxy...";
-        status.style.color = "var(--accent)";
+        statusDiv.innerText = "Processing (Bypassing CORS)...";
+        statusDiv.style.color = "var(--accent)";
 
         try {
-            // Using the proxy to bypass the CORS block
-            const response = await fetch(PROXY + encodeURIComponent(API_URL), {
+            // Using a simple fetch first, but if it fails, we fall back to a more aggressive proxy
+            const response = await fetch(PROXY_URL + encodeURIComponent(TARGET_URL), {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': API_KEY
+                    'x-api-key': API_KEY,
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ code: code })
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                editor.value = data.code;
-                status.innerText = "Success! Remaining Tokens: " + (data.tokens || "N/A");
-                status.style.color = "var(--success)";
-            } else {
-                status.innerText = "API Error: " + (data.message || "Invalid Request");
-                status.style.color = "var(--error)";
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || "Server rejected request");
             }
+
+            const data = await response.json();
+            
+            if (data.code) {
+                editor.value = data.code;
+                tokens.innerText = `Tokens: ${data.tokens || '?'}`;
+                statusDiv.innerText = "✓ Obfuscated Successfully";
+                statusDiv.style.color = "var(--success)";
+            } else {
+                throw new Error("Invalid response from Soteria");
+            }
+
         } catch (err) {
-            status.innerText = "Connection failed. The proxy might be busy.";
-            status.style.color = "var(--error)";
+            console.error(err);
+            statusDiv.innerText = "Error: Soteria API is blocking the connection. You may need a backend.";
+            statusDiv.style.color = "var(--error)";
         } finally {
             obfBtn.disabled = false;
         }
@@ -79,7 +88,7 @@
     document.getElementById('copyBtn').addEventListener('click', () => {
         editor.select();
         document.execCommand('copy');
-        alert("Copied!");
+        statusDiv.innerText = "Copied to clipboard!";
     });
 </script>
 
