@@ -1,37 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>Soteria Hub</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vortex // Advanced Luau Encryption</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --text: #c9d1d9; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .wrapper { width: 90%; max-width: 800px; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #30363d; }
-        textarea { width: 100%; height: 350px; background: #010409; color: #79c0ff; border: 1px solid #30363d; padding: 12px; font-family: monospace; box-sizing: border-box; }
-        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #238636; color: white; width: 100%; margin-top: 15px; }
-        #status { margin-top: 15px; text-align: center; font-size: 13px; }
+        :root {
+            --bg: #05070a;
+            --panel: #0d1117;
+            --accent: #00f2ff; /* Vortex Cyan */
+            --accent-glow: rgba(0, 242, 255, 0.2);
+            --text: #e6edf3;
+            --dim: #8b949e;
+            --border: #30363d;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Abstract Vortex Background */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            z-index: -1;
+            top: -100px;
+            right: -100px;
+        }
+
+        .main-app {
+            width: 90%;
+            max-width: 1200px;
+            height: 85vh;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+
+        .navbar {
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: var(--accent);
+            text-shadow: 0 0 15px var(--accent);
+        }
+
+        .token-info {
+            font-size: 11px;
+            color: var(--dim);
+            letter-spacing: 1px;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        .pane {
+            background: var(--panel);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pane-header {
+            padding: 8px 20px;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--dim);
+            text-transform: uppercase;
+            background: #090c10;
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 20px;
+            color: #79c0ff;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+        }
+
+        #outputBox {
+            background: #010409;
+            color: var(--accent);
+        }
+
+        .bottom-bar {
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            border-radius: 0 0 12px 12px;
+        }
+
+        button {
+            padding: 12px 0;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            font-size: 13px;
+        }
+
+        #obfBtn {
+            background: var(--accent);
+            color: #000;
+            flex: 2;
+        }
+
+        #obfBtn:hover {
+            filter: brightness(1.2);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        #copyBtn {
+            background: #21262d;
+            color: white;
+            flex: 1;
+            border: 1px solid var(--border);
+        }
+
+        #copyBtn:hover {
+            background: #30363d;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-<div class="wrapper">
-    <h2>Soteria Obfuscator</h2>
-    <textarea id="editor" placeholder="Paste code here..."></textarea>
-    <button id="obfBtn">Obfuscate Code</button>
-    <div id="status">Ready</div>
+
+<div class="main-app">
+    <div class="navbar">
+        <div class="logo">VORTEX</div>
+        <div class="token-info" id="tokens">TOKENS: --</div>
+    </div>
+
+    <div class="editor-container">
+        <div class="pane">
+            <div class="pane-header">Input Source</div>
+            <textarea id="inputBox" placeholder="-- Paste Lua code here..."></textarea>
+        </div>
+        <div class="pane">
+            <div class="pane-header">Vortex Output</div>
+            <textarea id="outputBox" readonly placeholder="-- Protected code will appear here..."></textarea>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="bottom-bar">
+        <button id="obfBtn">Initialize Vortex</button>
+        <button id="copyBtn">Copy Result</button>
+    </div>
 </div>
 
 <script>
     const obfBtn = document.getElementById('obfBtn');
-    const editor = document.getElementById('editor');
+    const input = document.getElementById('inputBox');
+    const output = document.getElementById('outputBox');
     const status = document.getElementById('status');
+    const tokenLabel = document.getElementById('tokens');
+
+    function updateStatus(msg, color) {
+        status.innerText = msg;
+        status.style.color = color;
+    }
 
     obfBtn.addEventListener('click', async () => {
-        const code = editor.value.trim();
-        if(!code) return;
+        const code = input.value.trim();
+        if (!code) return updateStatus("ERROR: INPUT EMPTY", "#ff4444");
 
         obfBtn.disabled = true;
-        status.innerText = "Processing via Vercel Backend...";
+        updateStatus("ENCRYPTING...", "var(--accent)");
 
         try {
+            // CALLING YOUR VERCEL API
             const response = await fetch('/api/obfuscate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -39,16 +228,28 @@
             });
 
             const data = await response.json();
+
             if (data.code) {
-                editor.value = data.code;
-                status.innerText = "✓ Success! Tokens left: " + data.tokens;
+                output.value = data.code;
+                tokenLabel.innerText = `TOKENS: ${data.tokens}`;
+                updateStatus("VORTEX SUCCESS", "#00ff88");
             } else {
-                status.innerText = "Error: " + (data.error || "Unknown error");
+                updateStatus("API REJECTED REQUEST", "#ff4444");
             }
         } catch (err) {
-            status.innerText = "Connection failed. Make sure you are on Vercel!";
-        } finally { obfBtn.disabled = false; }
+            updateStatus("CONNECTION FAILED", "#ff4444");
+        } finally {
+            obfBtn.disabled = false;
+        }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        if (!output.value) return;
+        output.select();
+        document.execCommand('copy');
+        updateStatus("COPIED TO CLIPBOARD", "var(--accent)");
     });
 </script>
+
 </body>
 </html>
